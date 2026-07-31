@@ -37,6 +37,9 @@ jobs:
             .github
             Telegram/ThirdParty/whisper.cpp
 
+      - name: Mark workspace as safe for git
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
       - name: Init whisper.cpp submodule
         run: git submodule update --init Telegram/ThirdParty/whisper.cpp
 
