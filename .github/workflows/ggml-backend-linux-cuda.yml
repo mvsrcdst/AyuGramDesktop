@@ -57,12 +57,23 @@ jobs:
       - name: Install CUDA-compatible host compiler
         run: dnf -y install gcc-toolset-13-gcc gcc-toolset-13-gcc-c++
 
+      #   GGML_NATIVE=OFF - fat bin compilation (huge binary size).
+      #   So we pin CMAKE_CUDA_ARCHITECTURES to only the GPU generations we
+      #   actually want to support, instead of the wide default fallback list.
+      #
+      #   DCMAKE_CUDA_ARCHITECTURES:
+      #   50 = Maxwell  (GTX 750/900)
+      #   61 = Pascal   (GTX 10xx)
+      #   75 = Turing   (RTX 20xx, GTX 16xx)
+      #   86 = Ampere   (RTX 30xx)
+      #   89 = Ada      (RTX 40xx)
       - name: Configure
         run: >
           cmake -S Telegram/ThirdParty/whisper.cpp -B build
           -DBUILD_SHARED_LIBS=ON
           -DGGML_BACKEND_DL=ON
           -DGGML_NATIVE=OFF
+          -DCMAKE_CUDA_ARCHITECTURES="61;75;86;89"
           -DWHISPER_BUILD_TESTS=OFF
           -DWHISPER_BUILD_EXAMPLES=OFF
           -DCMAKE_BUILD_TYPE=Release
