@@ -35,11 +35,10 @@ jobs:
         uses: ./.github/actions/resolve-whisper-vars
 
       - name: Install Vulkan SDK
-        uses: humbletim/setup-vulkan-sdk@v1.2.1
+        uses: humbletim/install-vulkan-sdk@v1.2
         with:
-          vulkan-query-version: latest
-          vulkan-components: Vulkan-Headers, Vulkan-Loader
-          vulkan-use-cache: true
+          version: 1.4.309.0
+          cache: true
 
       - name: Configure
         run: >
