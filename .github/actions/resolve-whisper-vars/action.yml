@@ -23,7 +23,7 @@ runs:
       run: |
         set -euo pipefail
         FULL_SHA=$(git submodule status Telegram/ThirdParty/whisper.cpp | awk '{print $1}' | sed 's/^[+-]//')
-        API_VERSION=$(grep -oP '#define GGML_BACKEND_API_VERSION \K[0-9]+' \
+        API_VERSION=$(sed -n 's/.*#define GGML_BACKEND_API_VERSION \([0-9]*\).*/\1/p' \
           Telegram/ThirdParty/whisper.cpp/ggml/src/ggml-backend-impl.h)
         echo "full_sha=$FULL_SHA" >> "$GITHUB_OUTPUT"
         echo "short_sha=${FULL_SHA:0:7}" >> "$GITHUB_OUTPUT"
