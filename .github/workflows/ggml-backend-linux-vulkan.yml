@@ -38,10 +38,14 @@ jobs:
         uses: ./.github/actions/resolve-whisper-vars
 
       - name: Install Vulkan SDK
-        uses: humbletim/install-vulkan-sdk@v1.2
-        with:
-          version: 1.4.309.0
-          cache: true
+        run: |
+          VULKAN_SDK_VERSION=1.4.309.0
+          curl -fsSL -o vulkan-sdk.tar.xz \
+            "https://sdk.lunarg.com/sdk/download/${VULKAN_SDK_VERSION}/linux/vulkansdk-linux-x86_64-${VULKAN_SDK_VERSION}.tar.xz"
+          mkdir -p /opt/vulkan-sdk
+          tar -xf vulkan-sdk.tar.xz -C /opt/vulkan-sdk --strip-components=1
+          echo "VULKAN_SDK=/opt/vulkan-sdk/x86_64" >> "$GITHUB_ENV"
+          echo "CMAKE_PREFIX_PATH=/opt/vulkan-sdk/x86_64" >> "$GITHUB_ENV"
 
       - name: Configure
         run: >
