@@ -15,6 +15,13 @@ inputs:
   whisper-cpp-commit:
     description: Full pinned whisper.cpp submodule commit hash.
     required: true
+  whisper-cpp-version:
+    description: >
+      Human-readable whisper.cpp version/tag (e.g. "v1.9.1"), from
+      resolve-whisper-vars' "version" output. Optional - falls back to just
+      the commit hash in the release notes if empty.
+    required: false
+    default: ''
   api-version:
     description: GGML_BACKEND_API_VERSION of the pinned commit.
     required: true
@@ -28,16 +35,23 @@ runs:
         ZIP_PATH: ${{ inputs.zip-path }}
         TAG: ggml-backends-${{ inputs.short-sha }}
         WHISPER_COMMIT: ${{ inputs.whisper-cpp-commit }}
+        WHISPER_VERSION: ${{ inputs.whisper-cpp-version }}
         API_VERSION: ${{ inputs.api-version }}
       run: |
         set -euo pipefail
         filename=$(basename "$ZIP_PATH")
         sha256=$(sha256sum "$ZIP_PATH" | awk '{print $1}')
 
+        if [ -n "$WHISPER_VERSION" ]; then
+          version_label="$WHISPER_VERSION ($WHISPER_COMMIT)"
+        else
+          version_label="$WHISPER_COMMIT"
+        fi
+
         if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
           gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
             --title "ggml GPU backends ($TAG)" \
-            --notes "Auto-built GGML_BACKEND_DL modules for whisper.cpp commit $WHISPER_COMMIT. Not for direct use - downloaded on-demand by the app."
+            --notes "Auto-built GGML_BACKEND_DL modules for whisper.cpp $version_label. Not for direct use - downloaded on-demand by the app."
         fi
 
         rm -f manifest.json

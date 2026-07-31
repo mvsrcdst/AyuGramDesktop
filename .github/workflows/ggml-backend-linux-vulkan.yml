@@ -20,6 +20,7 @@ jobs:
       short-sha: ${{ steps.vars.outputs.short-sha }}
       full-sha: ${{ steps.vars.outputs.full-sha }}
       api-version: ${{ steps.vars.outputs.api-version }}
+      whisper-version: ${{ steps.vars.outputs.version }}
       zip-name: ${{ steps.package.outputs.zip_path }}
     steps:
       - uses: actions/checkout@v5
@@ -99,3 +100,4 @@ jobs:
           short-sha: ${{ needs.build.outputs.short-sha }}
           whisper-cpp-commit: ${{ needs.build.outputs.full-sha }}
           api-version: ${{ needs.build.outputs.api-version }}
+          whisper-cpp-version: ${{ needs.build.outputs.whisper-version }}
