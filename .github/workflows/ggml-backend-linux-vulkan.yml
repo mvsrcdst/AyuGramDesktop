@@ -1,0 +1,100 @@
+name: ggml GPU backend - Linux Vulkan
+
+# See ggml-backend-windows-cuda.yml for the general rationale. This is the
+# riskiest of the three platforms - the CentOS-based container's Vulkan
+# SDK install is a hand-rolled tarball extraction, unverified until this
+# workflow has actually gone green. Kept independent precisely so it can
+# be iterated on without burning CI time on the Windows jobs.
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [dev]
+    paths:
+      - 'Telegram/ThirdParty/whisper.cpp'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # Same image official AyuGram/tdesktop Linux builds use, for glibc ABI
+    # compatibility with older target distros (see docs/building-linux.md).
+    container: ghcr.io/telegramdesktop/tdesktop:centos_env
+    outputs:
+      short-sha: ${{ steps.vars.outputs.short-sha }}
+      full-sha: ${{ steps.vars.outputs.full-sha }}
+      api-version: ${{ steps.vars.outputs.api-version }}
+      zip-name: ${{ steps.package.outputs.zip_path }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - id: vars
+        uses: ./.github/actions/resolve-whisper-vars
+
+      # humbletim/setup-vulkan-sdk assumes an apt host and doesn't work
+      # unmodified inside this CentOS-based container - install the
+      # generic LunarG SDK tarball by hand instead.
+      - name: Install Vulkan SDK (manual, CentOS container)
+        run: |
+          VULKAN_SDK_VERSION=1.3.290.0
+          curl -fsSL -o vulkan-sdk.tar.xz \
+            "https://sdk.lunarg.com/sdk/download/${VULKAN_SDK_VERSION}/linux/vulkansdk-linux-x86_64-${VULKAN_SDK_VERSION}.tar.xz"
+          mkdir -p /opt/vulkan-sdk
+          tar -xf vulkan-sdk.tar.xz -C /opt/vulkan-sdk --strip-components=1
+          echo "VULKAN_SDK=/opt/vulkan-sdk/x86_64" >> "$GITHUB_ENV"
+          echo "CMAKE_PREFIX_PATH=/opt/vulkan-sdk/x86_64" >> "$GITHUB_ENV"
+
+      - name: Configure
+        run: >
+          cmake -S Telegram/ThirdParty/whisper.cpp -B build
+          -DBUILD_SHARED_LIBS=ON
+          -DGGML_BACKEND_DL=ON
+          -DWHISPER_BUILD_TESTS=OFF
+          -DWHISPER_BUILD_EXAMPLES=OFF
+          -DCMAKE_BUILD_TYPE=Release
+          -DGGML_VULKAN=ON
+          -DCMAKE_BUILD_RPATH='$ORIGIN'
+          -DCMAKE_INSTALL_RPATH='$ORIGIN'
+
+      - name: Build
+        run: cmake --build build --target ggml-vulkan ggml-base -- -j"$(nproc)"
+
+      - name: Package
+        id: package
+        run: |
+          dest=package
+          mkdir -p "$dest"
+          find build -name "libggml-vulkan.so" -exec cp {} "$dest/" \;
+          find build -name "libggml-base.so" -exec cp {} "$dest/" \;
+          zipName="ggml-vulkan-linux-x64-${{ steps.vars.outputs.short-sha }}.zip"
+          (cd "$dest" && zip "../$zipName" ./*)
+          echo "zip_path=$zipName" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ggml-vulkan-linux-x64
+          path: ${{ steps.package.outputs.zip_path }}
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ggml-manifest-${{ github.sha }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ggml-vulkan-linux-x64
+
+      - uses: ./.github/actions/publish-ggml-backend
+        with:
+          zip-path: ${{ needs.build.outputs.zip-name }}
+          short-sha: ${{ needs.build.outputs.short-sha }}
+          whisper-cpp-commit: ${{ needs.build.outputs.full-sha }}
+          api-version: ${{ needs.build.outputs.api-version }}

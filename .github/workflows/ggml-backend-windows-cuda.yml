@@ -1,0 +1,100 @@
+name: ggml GPU backend - Windows CUDA
+
+# Builds the optional CUDA ggml backend as a standalone GGML_BACKEND_DL
+# module tied to the exact whisper.cpp submodule commit vendored in this
+# repo, downloaded on-demand by the app instead of bundled into the
+# release binary. See Telegram/SourceFiles/ayu/features/stt/gpu_backend_manager.cpp
+# and .github/actions/publish-ggml-backend. Independent from the
+# windows-vulkan/linux-vulkan workflows so it can be re-run/debugged on
+# its own without rebuilding the others.
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [dev]
+    paths:
+      - 'Telegram/ThirdParty/whisper.cpp'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-2022
+    outputs:
+      short-sha: ${{ steps.vars.outputs.short-sha }}
+      full-sha: ${{ steps.vars.outputs.full-sha }}
+      api-version: ${{ steps.vars.outputs.api-version }}
+      zip-name: ${{ steps.package.outputs.zip_path }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - id: vars
+        uses: ./.github/actions/resolve-whisper-vars
+
+      - name: Install CUDA toolkit
+        uses: Jimver/cuda-toolkit@v0.2
+        with:
+          cuda: '12.4.0'
+          method: 'network'
+
+      - name: Configure
+        run: >
+          cmake -S Telegram/ThirdParty/whisper.cpp -B build -G "Visual Studio 17 2022" -A x64
+          -DBUILD_SHARED_LIBS=ON
+          -DGGML_BACKEND_DL=ON
+          -DGGML_NATIVE=OFF
+          -DWHISPER_BUILD_TESTS=OFF
+          -DWHISPER_BUILD_EXAMPLES=OFF
+          -DCMAKE_BUILD_TYPE=Release
+          -DGGML_CUDA=ON
+          -DGGML_STATIC=ON
+          -DGGML_CUDA_NCCL=OFF
+
+      - name: Build
+        run: cmake --build build --config Release --target ggml-cuda ggml-base
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $dest = "package"
+          New-Item -ItemType Directory -Force -Path $dest | Out-Null
+          Copy-Item build/bin/Release/ggml-cuda.dll $dest/
+          Copy-Item build/bin/Release/ggml-base.dll $dest/
+          Get-ChildItem "$env:CUDA_PATH\bin" -Filter "cublas64_*.dll" | Copy-Item -Destination $dest/
+          Get-ChildItem "$env:CUDA_PATH\bin" -Filter "cublasLt64_*.dll" | Copy-Item -Destination $dest/
+          $zipName = "ggml-cuda-windows-x64-${{ steps.vars.outputs.short-sha }}.zip"
+          Compress-Archive -Path "$dest/*" -DestinationPath $zipName
+          echo "zip_path=$zipName" >> $env:GITHUB_OUTPUT
+        id: package
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ggml-cuda-windows-x64
+          path: ${{ steps.package.outputs.zip_path }}
+
+  # Separate job, serialized against the other backend workflows below via
+  # the concurrency group - the manifest.json merge in publish-ggml-backend
+  # is a read-modify-write against a single release asset, so two publishes
+  # racing for the same short-sha would clobber each other's entries.
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ggml-manifest-${{ github.sha }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ggml-cuda-windows-x64
+
+      - uses: ./.github/actions/publish-ggml-backend
+        with:
+          zip-path: ${{ needs.build.outputs.zip-name }}
+          short-sha: ${{ needs.build.outputs.short-sha }}
+          whisper-cpp-commit: ${{ needs.build.outputs.full-sha }}
+          api-version: ${{ needs.build.outputs.api-version }}

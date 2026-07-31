@@ -1,0 +1,99 @@
+name: ggml GPU backend - Linux CUDA
+
+# See ggml-backend-windows-cuda.yml for the general rationale. Same
+# centos_env container as ggml-backend-linux-vulkan.yml (RockyLinux 8, for
+# glibc ABI compatibility with older target distros - see
+# docs/building-linux.md); Jimver/cuda-toolkit only supports apt/choco
+# hosts, so the toolkit is installed via NVIDIA's official RHEL8 dnf repo
+# instead. cuda-toolkit-12-4 tracks the latest 12.4.x point release rather
+# than the exact 12.4.0 pinned on Windows - close enough for an
+# ABI-stable GGML_BACKEND_DL module.
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [dev]
+    paths:
+      - 'Telegram/ThirdParty/whisper.cpp'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: ghcr.io/telegramdesktop/tdesktop:centos_env
+    outputs:
+      short-sha: ${{ steps.vars.outputs.short-sha }}
+      full-sha: ${{ steps.vars.outputs.full-sha }}
+      api-version: ${{ steps.vars.outputs.api-version }}
+      zip-name: ${{ steps.package.outputs.zip_path }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - id: vars
+        uses: ./.github/actions/resolve-whisper-vars
+
+      - name: Install CUDA toolkit (manual, CentOS container)
+        run: |
+          dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/cuda-rhel8.repo
+          dnf -y install cuda-toolkit-12-4
+          echo "CUDA_PATH=/usr/local/cuda-12.4" >> "$GITHUB_ENV"
+          echo "/usr/local/cuda-12.4/bin" >> "$GITHUB_PATH"
+          echo "LD_LIBRARY_PATH=/usr/local/cuda-12.4/lib64:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
+
+      - name: Configure
+        run: >
+          cmake -S Telegram/ThirdParty/whisper.cpp -B build
+          -DBUILD_SHARED_LIBS=ON
+          -DGGML_BACKEND_DL=ON
+          -DGGML_NATIVE=OFF
+          -DWHISPER_BUILD_TESTS=OFF
+          -DWHISPER_BUILD_EXAMPLES=OFF
+          -DCMAKE_BUILD_TYPE=Release
+          -DGGML_CUDA=ON
+          -DCMAKE_BUILD_RPATH='$ORIGIN'
+          -DCMAKE_INSTALL_RPATH='$ORIGIN'
+
+      - name: Build
+        run: cmake --build build --target ggml-cuda ggml-base -- -j"$(nproc)"
+
+      - name: Package
+        id: package
+        run: |
+          dest=package
+          mkdir -p "$dest"
+          find build -name "libggml-cuda.so" -exec cp {} "$dest/" \;
+          find build -name "libggml-base.so" -exec cp {} "$dest/" \;
+          cp -P "$CUDA_PATH"/lib64/libcublas.so.* "$dest/"
+          cp -P "$CUDA_PATH"/lib64/libcublasLt.so.* "$dest/"
+          zipName="ggml-cuda-linux-x64-${{ steps.vars.outputs.short-sha }}.zip"
+          (cd "$dest" && zip "../$zipName" ./*)
+          echo "zip_path=$zipName" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ggml-cuda-linux-x64
+          path: ${{ steps.package.outputs.zip_path }}
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ggml-manifest-${{ github.sha }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ggml-cuda-linux-x64
+
+      - uses: ./.github/actions/publish-ggml-backend
+        with:
+          zip-path: ${{ needs.build.outputs.zip-name }}
+          short-sha: ${{ needs.build.outputs.short-sha }}
+          whisper-cpp-commit: ${{ needs.build.outputs.full-sha }}
+          api-version: ${{ needs.build.outputs.api-version }}

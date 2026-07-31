@@ -1,0 +1,64 @@
+name: Publish ggml GPU backend asset
+description: >
+  Uploads a built ggml backend zip to the ggml-backends-<short-sha> release
+  (creating it if needed), merging this platform's entry into the shared
+  manifest.json rather than overwriting entries from the other platform
+  workflows. Requires `permissions: contents: write` on the calling job.
+
+inputs:
+  zip-path:
+    description: Path to the built backend zip file.
+    required: true
+  short-sha:
+    description: First 7 chars of the pinned whisper.cpp commit (release tag suffix).
+    required: true
+  whisper-cpp-commit:
+    description: Full pinned whisper.cpp submodule commit hash.
+    required: true
+  api-version:
+    description: GGML_BACKEND_API_VERSION of the pinned commit.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        ZIP_PATH: ${{ inputs.zip-path }}
+        TAG: ggml-backends-${{ inputs.short-sha }}
+        WHISPER_COMMIT: ${{ inputs.whisper-cpp-commit }}
+        API_VERSION: ${{ inputs.api-version }}
+      run: |
+        set -euo pipefail
+        filename=$(basename "$ZIP_PATH")
+        sha256=$(sha256sum "$ZIP_PATH" | awk '{print $1}')
+
+        if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
+            --title "ggml GPU backends ($TAG)" \
+            --notes "Auto-built GGML_BACKEND_DL modules for whisper.cpp commit $WHISPER_COMMIT. Not for direct use - downloaded on-demand by the app."
+        fi
+
+        rm -f manifest.json
+        gh release download "$TAG" --repo "$GITHUB_REPOSITORY" \
+          --pattern manifest.json --output manifest.json 2>/dev/null || echo "[]" > manifest.json
+
+        python3 - "$filename" "$sha256" "$WHISPER_COMMIT" "$API_VERSION" <<'PY'
+        import json, sys
+
+        filename, sha256, commit, api_version = sys.argv[1:5]
+        with open("manifest.json") as f:
+            entries = json.load(f)
+        entries = [e for e in entries if e["filename"] != filename]
+        entries.append({
+            "filename": filename,
+            "sha256": sha256,
+            "whisper_cpp_commit": commit,
+            "ggml_backend_api_version": int(api_version),
+        })
+        with open("manifest.json", "w") as f:
+            json.dump(entries, f, indent=2)
+        PY
+
+        gh release upload "$TAG" "$ZIP_PATH" manifest.json --repo "$GITHUB_REPOSITORY" --clobber

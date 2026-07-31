@@ -1,0 +1,30 @@
+name: Resolve whisper.cpp submodule vars
+description: >
+  Computes the short/full pinned whisper.cpp submodule commit and its
+  GGML_BACKEND_API_VERSION. Requires the submodule to already be checked
+  out (actions/checkout with submodules: recursive) beforehand.
+
+outputs:
+  short-sha:
+    description: First 7 chars of the pinned whisper.cpp commit.
+    value: ${{ steps.vars.outputs.short_sha }}
+  full-sha:
+    description: Full pinned whisper.cpp commit hash.
+    value: ${{ steps.vars.outputs.full_sha }}
+  api-version:
+    description: GGML_BACKEND_API_VERSION of the pinned commit.
+    value: ${{ steps.vars.outputs.api_version }}
+
+runs:
+  using: composite
+  steps:
+    - id: vars
+      shell: bash
+      run: |
+        set -euo pipefail
+        FULL_SHA=$(git submodule status Telegram/ThirdParty/whisper.cpp | awk '{print $1}' | sed 's/^[+-]//')
+        API_VERSION=$(grep -oP '#define GGML_BACKEND_API_VERSION \K[0-9]+' \
+          Telegram/ThirdParty/whisper.cpp/ggml/src/ggml-backend-impl.h)
+        echo "full_sha=$FULL_SHA" >> "$GITHUB_OUTPUT"
+        echo "short_sha=${FULL_SHA:0:7}" >> "$GITHUB_OUTPUT"
+        echo "api_version=$API_VERSION" >> "$GITHUB_OUTPUT"
