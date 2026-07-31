@@ -31,7 +31,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
+          sparse-checkout: |
+            .github
+            Telegram/ThirdParty/whisper.cpp
+
+      - name: Init whisper.cpp submodule
+        run: git submodule update --init Telegram/ThirdParty/whisper.cpp
 
       - id: vars
         uses: ./.github/actions/resolve-whisper-vars

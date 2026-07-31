@@ -28,7 +28,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
+          sparse-checkout: |
+            .github
+            Telegram/ThirdParty/whisper.cpp
+
+      - name: Init whisper.cpp submodule
+        run: git submodule update --init Telegram/ThirdParty/whisper.cpp
 
       - id: vars
         uses: ./.github/actions/resolve-whisper-vars
@@ -38,6 +43,7 @@ jobs:
           cmake -S Telegram/ThirdParty/whisper.cpp -B build
           -DBUILD_SHARED_LIBS=ON
           -DGGML_BACKEND_DL=ON
+          -DGGML_NATIVE=OFF
           -DWHISPER_BUILD_TESTS=OFF
           -DWHISPER_BUILD_EXAMPLES=OFF
           -DCMAKE_BUILD_TYPE=Release
