@@ -73,6 +73,7 @@ jobs:
       - name: Package
         id: package
         run: |
+          dnf install -y zip
           dest=package
           mkdir -p "$dest"
           find build -name "libggml-cuda.so" -exec cp {} "$dest/" \;

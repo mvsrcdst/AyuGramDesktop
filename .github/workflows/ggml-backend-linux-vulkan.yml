@@ -66,6 +66,7 @@ jobs:
       - name: Package
         id: package
         run: |
+          dnf install -y zip
           dest=package
           mkdir -p "$dest"
           find build -name "libggml-vulkan.so" -exec cp {} "$dest/" \;
