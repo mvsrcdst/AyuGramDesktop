@@ -22,7 +22,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: ghcr.io/telegramdesktop/tdesktop:centos_env
+    container: ghcr.io/telegramdesktop/tdesktop/centos_env:latest
     outputs:
       short-sha: ${{ steps.vars.outputs.short-sha }}
       full-sha: ${{ steps.vars.outputs.full-sha }}
