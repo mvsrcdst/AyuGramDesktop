@@ -49,10 +49,13 @@ jobs:
       - name: Install CUDA toolkit (manual, CentOS container)
         run: |
           dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/cuda-rhel8.repo
-          dnf -y install cuda-toolkit-12-4
+          dnf -y install cuda-nvcc-12-4 cuda-cudart-devel-12-4 libcublas-devel-12-4 cuda-driver-devel-12-4
           echo "CUDA_PATH=/usr/local/cuda-12.4" >> "$GITHUB_ENV"
           echo "/usr/local/cuda-12.4/bin" >> "$GITHUB_PATH"
           echo "LD_LIBRARY_PATH=/usr/local/cuda-12.4/lib64:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
+
+      - name: Install CUDA-compatible host compiler
+        run: dnf -y install gcc-toolset-13-gcc gcc-toolset-13-gcc-c++
 
       - name: Configure
         run: >
@@ -64,6 +67,7 @@ jobs:
           -DWHISPER_BUILD_EXAMPLES=OFF
           -DCMAKE_BUILD_TYPE=Release
           -DGGML_CUDA=ON
+          -DCMAKE_CUDA_HOST_COMPILER=/opt/rh/gcc-toolset-13/root/usr/bin/gcc
           -DCMAKE_BUILD_RPATH='$ORIGIN'
           -DCMAKE_INSTALL_RPATH='$ORIGIN'
 
