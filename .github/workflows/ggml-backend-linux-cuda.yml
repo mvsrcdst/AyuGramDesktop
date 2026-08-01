@@ -5,9 +5,9 @@ name: ggml GPU backend - Linux CUDA
 # glibc ABI compatibility with older target distros - see
 # docs/building-linux.md); Jimver/cuda-toolkit only supports apt/choco
 # hosts, so the toolkit is installed via NVIDIA's official RHEL8 dnf repo
-# instead. cuda-toolkit-12-4 tracks the latest 12.4.x point release rather
-# than the exact 12.4.0 pinned on Windows - close enough for an
-# ABI-stable GGML_BACKEND_DL module.
+# instead. CUDA 11.8 rather than 12.4: it already covers every architecture
+# we target (Pascal through Ada - Ada/sm_89 support landed in 11.8), and
+# its cuBLAS is dramatically smaller than 12.x's (see ggml-backend-windows-cuda.yml).
 
 on:
   workflow_dispatch: {}
@@ -50,13 +50,13 @@ jobs:
       - name: Install CUDA toolkit (manual, CentOS container)
         run: |
           dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/cuda-rhel8.repo
-          dnf -y install cuda-nvcc-12-4 cuda-cudart-devel-12-4 libcublas-devel-12-4 cuda-driver-devel-12-4
-          echo "CUDA_PATH=/usr/local/cuda-12.4" >> "$GITHUB_ENV"
-          echo "/usr/local/cuda-12.4/bin" >> "$GITHUB_PATH"
-          echo "LD_LIBRARY_PATH=/usr/local/cuda-12.4/lib64:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
+          dnf -y install cuda-nvcc-11-8 cuda-cudart-devel-11-8 libcublas-devel-11-8 cuda-driver-devel-11-8
+          echo "CUDA_PATH=/usr/local/cuda-11.8" >> "$GITHUB_ENV"
+          echo "/usr/local/cuda-11.8/bin" >> "$GITHUB_PATH"
+          echo "LD_LIBRARY_PATH=/usr/local/cuda-11.8/lib64:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
 
       - name: Install CUDA-compatible host compiler
-        run: dnf -y install gcc-toolset-13-gcc gcc-toolset-13-gcc-c++
+        run: dnf -y install gcc-toolset-11-gcc gcc-toolset-11-gcc-c++
 
       #   GGML_NATIVE=OFF - fat bin compilation (huge binary size).
       #   So we pin CMAKE_CUDA_ARCHITECTURES to only the GPU generations we
@@ -79,7 +79,7 @@ jobs:
           -DWHISPER_BUILD_EXAMPLES=OFF
           -DCMAKE_BUILD_TYPE=Release
           -DGGML_CUDA=ON
-          -DCMAKE_CUDA_HOST_COMPILER=/opt/rh/gcc-toolset-13/root/usr/bin/gcc
+          -DCMAKE_CUDA_HOST_COMPILER=/opt/rh/gcc-toolset-11/root/usr/bin/gcc
           -DCMAKE_BUILD_RPATH='$ORIGIN'
           -DCMAKE_INSTALL_RPATH='$ORIGIN'
 
@@ -97,7 +97,12 @@ jobs:
           cp -P "$CUDA_PATH"/lib64/libcublas.so.* "$dest/"
           cp -P "$CUDA_PATH"/lib64/libcublasLt.so.* "$dest/"
           zipName="ggml-cuda-linux-x64-${{ steps.vars.outputs.short-sha }}.zip"
-          (cd "$dest" && zip "../$zipName" ./*)
+          # -y: store symlinks as symlinks. Without it, zip dereferences
+          # libcublas.so.12 -> libcublas.so.12.x.y.z and stores the full
+          # ~110-440MB content under BOTH names (soname link name + real
+          # versioned name) since cp -P kept the symlink but zip doesn't
+          # know that by default.
+          (cd "$dest" && zip -y "../$zipName" ./*)
           echo "zip_path=$zipName" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@v7
