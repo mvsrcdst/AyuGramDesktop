@@ -47,11 +47,6 @@ jobs:
           method: 'network'
           sub-packages: '["nvcc", "cudart", "visual_studio_integration", "cublas", "cublas_dev"]'
 
-      - name: Install MSVC 14.34 toolset (VS 17.4, CUDA 11.8 compatible)
-        shell: cmd
-        run: |
-          "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vs_installer.exe" modify --installPath "C:\Program Files\Microsoft Visual Studio\2022\Enterprise" --add Microsoft.VisualStudio.Component.VC.14.34.17.4.x86.x64 --quiet --norestart --wait
-
       #   GGML_NATIVE=OFF - fat bin compilation (huge binary size).
       #   So we pin CMAKE_CUDA_ARCHITECTURES to only the GPU generations we
       #   actually want to support, instead of the wide default fallback list.
@@ -65,7 +60,7 @@ jobs:
       - name: Configure
         run: >
           cmake -S Telegram/ThirdParty/whisper.cpp -B build -G "Visual Studio 17 2022" -A x64
-          -T version=14.34
+          -DCMAKE_CUDA_FLAGS="-Xcompiler /D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH"
           -DBUILD_SHARED_LIBS=ON
           -DGGML_BACKEND_DL=ON
           -DGGML_NATIVE=OFF
