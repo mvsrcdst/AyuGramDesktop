@@ -48,7 +48,7 @@ jobs:
         with:
           cuda: '11.8.0'
           method: 'network'
-          sub-packages: '["nvcc", "cudart", "visual_studio_integration", "cublas", "cublas_dev"]'
+          sub-packages: '["nvcc", "cudart", "visual_studio_integration", "cublas", "cublas_dev", "thrust"]'
 
       #   GGML_NATIVE=OFF - fat bin compilation (huge binary size).
       #   So we pin CMAKE_CUDA_ARCHITECTURES to only the GPU generations we
