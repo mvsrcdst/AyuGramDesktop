@@ -23,6 +23,7 @@ jobs:
     runs-on: windows-2022
     env:
       CL: /D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH
+      NVCC_PREPEND_FLAGS: -allow-unsupported-compiler
     outputs:
       short-sha: ${{ steps.vars.outputs.short-sha }}
       full-sha: ${{ steps.vars.outputs.full-sha }}
