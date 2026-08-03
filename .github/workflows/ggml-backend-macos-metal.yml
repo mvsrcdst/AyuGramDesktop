@@ -1,11 +1,4 @@
-name: ggml GPU backend - macOS Metal
-
-# See ggml-backend-windows-cuda.yml for the general rationale. Universal
-# (x86_64+arm64) build via CMAKE_OSX_ARCHITECTURES - cross-compiling both
-# slices on one runner works fine for Metal since shader compilation
-# doesn't need matching host hardware. Metal shader source is embedded
-# into the dylib (GGML_METAL_EMBED_LIBRARY) so no separate .metallib
-# asset has to ship alongside it.
+name: macOS Metal ggml backend
 
 on:
   workflow_dispatch: {}
@@ -37,7 +30,7 @@ jobs:
         run: git submodule update --init Telegram/ThirdParty/whisper.cpp
 
       - id: vars
-        uses: ./.github/actions/resolve-whisper-vars
+        uses: ./.github/actions/ggml-backend/resolve-vars
 
       - name: Configure
         run: >
@@ -85,7 +78,7 @@ jobs:
         with:
           name: ggml-metal-macos-universal
 
-      - uses: ./.github/actions/publish-ggml-backend
+      - uses: ./.github/actions/ggml-backend/publish
         with:
           zip-path: ${{ needs.build.outputs.zip-name }}
           short-sha: ${{ needs.build.outputs.short-sha }}

@@ -1,4 +1,4 @@
-name: ggml GPU backend - Linux Vulkan
+name: Linux Vulkan ggml backend
 
 on:
   workflow_dispatch: {}
@@ -36,7 +36,7 @@ jobs:
         run: git submodule update --init Telegram/ThirdParty/whisper.cpp
 
       - id: vars
-        uses: ./.github/actions/resolve-whisper-vars
+        uses: ./.github/actions/ggml-backend/resolve-vars
 
       - name: Install Vulkan SDK
         run: |
@@ -94,7 +94,7 @@ jobs:
         with:
           name: ggml-vulkan-linux-x64
 
-      - uses: ./.github/actions/publish-ggml-backend
+      - uses: ./.github/actions/ggml-backend/publish
         with:
           zip-path: ${{ needs.build.outputs.zip-name }}
           short-sha: ${{ needs.build.outputs.short-sha }}

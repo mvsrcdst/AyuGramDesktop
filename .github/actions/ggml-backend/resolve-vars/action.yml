@@ -1,23 +1,18 @@
 name: Resolve whisper.cpp submodule vars
-description: >
-  Computes the short/full pinned whisper.cpp submodule commit and its
-  GGML_BACKEND_API_VERSION. Requires the submodule to already be checked
-  out (actions/checkout with submodules: recursive) beforehand.
+description: Computes pinned whisper.cpp commit + GGML_BACKEND_API_VERSION. Submodule must already be checked out.
 
 outputs:
   short-sha:
-    description: First 7 chars of the pinned whisper.cpp commit.
+    description: First 7 chars of pinned commit.
     value: ${{ steps.vars.outputs.short_sha }}
   full-sha:
-    description: Full pinned whisper.cpp commit hash.
+    description: Full pinned commit hash.
     value: ${{ steps.vars.outputs.full_sha }}
   api-version:
-    description: GGML_BACKEND_API_VERSION of the pinned commit.
+    description: GGML_BACKEND_API_VERSION of pinned commit.
     value: ${{ steps.vars.outputs.api_version }}
   version:
-    description: >
-      Nearest tag for the pinned commit (e.g. "v1.9.1"), or "<tag>-<N>-g<sha>"
-      if it isn't exactly a tagged release. Empty if no tags are reachable.
+    description: Nearest tag (e.g. "v1.9.1") or "<tag>-<N>-g<sha>". Empty if no tags reachable.
     value: ${{ steps.vars.outputs.version }}
 
 runs:

@@ -1,29 +1,22 @@
-name: Publish ggml GPU backend asset
-description: >
-  Uploads a built ggml backend zip to the ggml-backends-<short-sha> release
-  (creating it if needed), merging this platform's entry into the shared
-  manifest.json rather than overwriting entries from the other platform
-  workflows. Requires `permissions: contents: write` on the calling job.
+name: Publish ggml backend asset
+description: "Uploads built backend zip to ggml-backends-<short-sha> release, merging into shared manifest.json. Needs `permissions: contents: write`."
 
 inputs:
   zip-path:
-    description: Path to the built backend zip file.
+    description: Path to built backend zip file.
     required: true
   short-sha:
-    description: First 7 chars of the pinned whisper.cpp commit (release tag suffix).
+    description: First 7 chars of pinned whisper.cpp commit (release tag suffix).
     required: true
   whisper-cpp-commit:
-    description: Full pinned whisper.cpp submodule commit hash.
+    description: Full pinned whisper.cpp commit hash.
     required: true
   whisper-cpp-version:
-    description: >
-      Human-readable whisper.cpp version/tag (e.g. "v1.9.1"), from
-      resolve-whisper-vars' "version" output. Optional - falls back to just
-      the commit hash in the release notes if empty.
+    description: Version/tag (e.g. "v1.9.1") from resolve-vars. Falls back to commit hash if empty.
     required: false
     default: ''
   api-version:
-    description: GGML_BACKEND_API_VERSION of the pinned commit.
+    description: GGML_BACKEND_API_VERSION of pinned commit.
     required: true
 
 runs:
@@ -50,7 +43,7 @@ runs:
 
         if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
           gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
-            --title "ggml GPU backends ($TAG)" \
+            --title "ggml backends ($TAG)" \
             --notes "Auto-built GGML_BACKEND_DL modules for whisper.cpp $version_label. Not for direct use - downloaded on-demand by the app."
         fi
 

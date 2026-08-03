@@ -1,7 +1,4 @@
-name: ggml GPU backend - Windows Vulkan
-
-# See ggml-backend-windows-cuda.yml for the general rationale. Independent
-# workflow so it can be re-run/debugged without rebuilding CUDA/Linux.
+name: Windows Vulkan ggml backend
 
 on:
   workflow_dispatch: {}
@@ -33,7 +30,7 @@ jobs:
         run: git submodule update --init Telegram/ThirdParty/whisper.cpp
 
       - id: vars
-        uses: ./.github/actions/resolve-whisper-vars
+        uses: ./.github/actions/ggml-backend/resolve-vars
 
       - name: Install Vulkan SDK
         env:
@@ -88,7 +85,7 @@ jobs:
         with:
           name: ggml-vulkan-windows-x64
 
-      - uses: ./.github/actions/publish-ggml-backend
+      - uses: ./.github/actions/ggml-backend/publish
         with:
           zip-path: ${{ needs.build.outputs.zip-name }}
           short-sha: ${{ needs.build.outputs.short-sha }}

@@ -1,11 +1,4 @@
-name: ggml GPU backend - Linux CUDA
-
-# See ggml-backend-windows-cuda.yml for the general rationale. Same
-# centos_env container as ggml-backend-linux-vulkan.yml (RockyLinux 8, for
-# glibc ABI compatibility with older target distros - see
-# docs/building-linux.md); Jimver/cuda-toolkit only supports apt/choco
-# hosts, so the toolkit is installed via NVIDIA's official RHEL8 dnf repo
-# instead.
+name: Linux CUDA ggml backend
 
 on:
   workflow_dispatch: {}
@@ -43,7 +36,7 @@ jobs:
         run: git submodule update --init Telegram/ThirdParty/whisper.cpp
 
       - id: vars
-        uses: ./.github/actions/resolve-whisper-vars
+        uses: ./.github/actions/ggml-backend/resolve-vars
 
       - name: Install CUDA toolkit (manual, CentOS container)
         run: |
@@ -56,16 +49,9 @@ jobs:
       - name: Install CUDA-compatible host compiler
         run: dnf -y install gcc-toolset-13-gcc gcc-toolset-13-gcc-c++
 
-      #   GGML_NATIVE=OFF - fat bin compilation (huge binary size).
-      #   So we pin CMAKE_CUDA_ARCHITECTURES to only the GPU generations we
-      #   actually want to support, instead of the wide default fallback list.
-      #
-      #   DCMAKE_CUDA_ARCHITECTURES:
-      #   50 = Maxwell  (GTX 750/900)
-      #   61 = Pascal   (GTX 10xx)
-      #   75 = Turing   (RTX 20xx, GTX 16xx)
-      #   86 = Ampere   (RTX 30xx)
-      #   89 = Ada      (RTX 40xx)
+      # GGML_NATIVE=OFF fat-bins for all archs (huge size), so pin
+      # CMAKE_CUDA_ARCHITECTURES to supported GPU gens only:
+      # 61 Pascal, 75 Turing, 86 Ampere, 89 Ada.
       - name: Configure
         run: >
           cmake -S Telegram/ThirdParty/whisper.cpp -B build
@@ -95,11 +81,8 @@ jobs:
           cp -P "$CUDA_PATH"/lib64/libcublas.so.* "$dest/"
           cp -P "$CUDA_PATH"/lib64/libcublasLt.so.* "$dest/"
           zipName="ggml-cuda-linux-x64-${{ steps.vars.outputs.short-sha }}.zip"
-          # -y: store symlinks as symlinks. Without it, zip dereferences
-          # libcublas.so.12 -> libcublas.so.12.x.y.z and stores the full
-          # ~110-440MB content under BOTH names (soname link name + real
-          # versioned name) since cp -P kept the symlink but zip doesn't
-          # know that by default.
+          # -y keeps symlinks as symlinks, else zip dereferences and
+          # duplicates the ~110-440MB lib under both names.
           (cd "$dest" && zip -y "../$zipName" ./*)
           echo "zip_path=$zipName" >> "$GITHUB_OUTPUT"
 
@@ -121,7 +104,7 @@ jobs:
         with:
           name: ggml-cuda-linux-x64
 
-      - uses: ./.github/actions/publish-ggml-backend
+      - uses: ./.github/actions/ggml-backend/publish
         with:
           zip-path: ${{ needs.build.outputs.zip-name }}
           short-sha: ${{ needs.build.outputs.short-sha }}

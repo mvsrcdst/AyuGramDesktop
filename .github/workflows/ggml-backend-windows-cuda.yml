@@ -1,12 +1,4 @@
-name: ggml GPU backend - Windows CUDA
-
-# Builds the optional CUDA ggml backend as a standalone GGML_BACKEND_DL
-# module tied to the exact whisper.cpp submodule commit vendored in this
-# repo, downloaded on-demand by the app instead of bundled into the
-# release binary. See Telegram/SourceFiles/ayu/features/stt/gpu_backend_manager.cpp
-# and .github/actions/publish-ggml-backend. Independent from the
-# windows-vulkan/linux-vulkan workflows so it can be re-run/debugged on
-# its own without rebuilding the others.
+name: Windows CUDA ggml backend
 
 on:
   workflow_dispatch: {}
@@ -38,7 +30,7 @@ jobs:
         run: git submodule update --init Telegram/ThirdParty/whisper.cpp
 
       - id: vars
-        uses: ./.github/actions/resolve-whisper-vars
+        uses: ./.github/actions/ggml-backend/resolve-vars
 
       - name: Install CUDA toolkit
         uses: Jimver/cuda-toolkit@v0.2.35
@@ -47,16 +39,9 @@ jobs:
           method: 'network'
           sub-packages: '["nvcc", "cudart", "visual_studio_integration", "cublas", "cublas_dev"]'
 
-      #   GGML_NATIVE=OFF - fat bin compilation (huge binary size).
-      #   So we pin CMAKE_CUDA_ARCHITECTURES to only the GPU generations we
-      #   actually want to support, instead of the wide default fallback list.
-      #
-      #   DCMAKE_CUDA_ARCHITECTURES:
-      #   50 = Maxwell  (GTX 750/900)
-      #   61 = Pascal   (GTX 10xx)
-      #   75 = Turing   (RTX 20xx, GTX 16xx)
-      #   86 = Ampere   (RTX 30xx)
-      #   89 = Ada      (RTX 40xx)
+      # GGML_NATIVE=OFF fat-bins for all archs (huge size), so pin
+      # CMAKE_CUDA_ARCHITECTURES to supported GPU gens only:
+      # 61 Pascal, 75 Turing, 86 Ampere, 89 Ada.
       - name: Configure
         run: >
           cmake -S Telegram/ThirdParty/whisper.cpp -B build -G "Visual Studio 17 2022" -A x64
@@ -93,10 +78,6 @@ jobs:
           name: ggml-cuda-windows-x64
           path: ${{ steps.package.outputs.zip_path }}
 
-  # Separate job, serialized against the other backend workflows below via
-  # the concurrency group - the manifest.json merge in publish-ggml-backend
-  # is a read-modify-write against a single release asset, so two publishes
-  # racing for the same short-sha would clobber each other's entries.
   publish:
     needs: build
     runs-on: ubuntu-latest
@@ -110,7 +91,7 @@ jobs:
         with:
           name: ggml-cuda-windows-x64
 
-      - uses: ./.github/actions/publish-ggml-backend
+      - uses: ./.github/actions/ggml-backend/publish
         with:
           zip-path: ${{ needs.build.outputs.zip-name }}
           short-sha: ${{ needs.build.outputs.short-sha }}
