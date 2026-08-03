@@ -21,9 +21,6 @@ permissions:
 jobs:
   build:
     runs-on: windows-2022
-    env:
-      CL: /D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH
-      NVCC_PREPEND_FLAGS: -allow-unsupported-compiler
     outputs:
       short-sha: ${{ steps.vars.outputs.short-sha }}
       full-sha: ${{ steps.vars.outputs.full-sha }}
@@ -46,9 +43,9 @@ jobs:
       - name: Install CUDA toolkit
         uses: Jimver/cuda-toolkit@v0.2.35
         with:
-          cuda: '11.8.0'
+          cuda: '12.4.0'
           method: 'network'
-          sub-packages: '["nvcc", "cudart", "visual_studio_integration", "cublas", "cublas_dev", "thrust"]'
+          sub-packages: '["nvcc", "cudart", "visual_studio_integration", "cublas", "cublas_dev"]'
 
       #   GGML_NATIVE=OFF - fat bin compilation (huge binary size).
       #   So we pin CMAKE_CUDA_ARCHITECTURES to only the GPU generations we
