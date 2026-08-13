@@ -48,6 +48,22 @@ jobs:
           echo "VULKAN_SDK=/opt/vulkan-sdk/x86_64" >> "$GITHUB_ENV"
           echo "CMAKE_PREFIX_PATH=/opt/vulkan-sdk/x86_64" >> "$GITHUB_ENV"
 
+      - name: Build glslc from source
+        run: |
+          export CC=/opt/rh/gcc-toolset-15/root/usr/bin/gcc
+          export CXX=/opt/rh/gcc-toolset-15/root/usr/bin/g++
+          git clone --depth 1 --branch v2026.3 https://github.com/google/shaderc.git /tmp/shaderc
+          cd /tmp/shaderc
+          python3 utils/git-sync-deps
+          cmake -S . -B build -GNinja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DSHADERC_SKIP_TESTS=ON \
+            -DSHADERC_SKIP_EXAMPLES=ON \
+            -DSHADERC_SKIP_COPYRIGHT_CHECK=ON \
+            -DSHADERC_SKIP_INSTALL=ON
+          cmake --build build --target glslc_exe -- -j"$(nproc)"
+          echo "GLSLC_BIN=/tmp/shaderc/build/glslc/glslc" >> "$GITHUB_ENV"
+
       - name: Configure
         run: >
           cmake -S Telegram/ThirdParty/whisper.cpp -B build
@@ -58,6 +74,7 @@ jobs:
           -DWHISPER_BUILD_EXAMPLES=OFF
           -DCMAKE_BUILD_TYPE=Release
           -DGGML_VULKAN=ON
+          -DVulkan_GLSLC_EXECUTABLE=${{ env.GLSLC_BIN }}
           -DCMAKE_BUILD_RPATH='$ORIGIN'
           -DCMAKE_INSTALL_RPATH='$ORIGIN'
 
