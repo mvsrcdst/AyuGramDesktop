@@ -45,6 +45,8 @@ jobs:
           -DGGML_METAL_EMBED_LIBRARY=ON
           -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
           -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0
+          -DCMAKE_BUILD_RPATH='@loader_path'
+          -DCMAKE_INSTALL_RPATH='@loader_path'
 
       - name: Build
         run: cmake --build build --config Release --target ggml-metal ggml-base -- -j"$(sysctl -n hw.ncpu)"
@@ -54,10 +56,14 @@ jobs:
         run: |
           dest=package
           mkdir -p "$dest"
+          # ggml-metal.so links against @rpath/libggml-base.0.dylib (the
+          # SONAME, not the unversioned symlink) - copy that exact name so
+          # dyld's @loader_path lookup (set above) actually finds it
+          # sitting next to the module at runtime.
           find build -name "libggml-metal.so" -exec cp {} "$dest/" \;
-          find build -name "libggml-base.dylib" -exec cp {} "$dest/" \;
+          find build -name "libggml-base.0.dylib" -exec cp {} "$dest/" \;
           test -f "$dest/libggml-metal.so" || { echo "::error::libggml-metal.so not found in build output"; exit 1; }
-          test -f "$dest/libggml-base.dylib" || { echo "::error::libggml-base.dylib not found in build output"; exit 1; }
+          test -f "$dest/libggml-base.0.dylib" || { echo "::error::libggml-base.0.dylib not found in build output"; exit 1; }
           zipName="ggml-metal-macos-universal-${{ steps.vars.outputs.short-sha }}.zip"
           (cd "$dest" && zip "../$zipName" ./*)
           echo "zip_path=$zipName" >> "$GITHUB_OUTPUT"
