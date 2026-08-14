@@ -54,8 +54,10 @@ jobs:
         run: |
           dest=package
           mkdir -p "$dest"
-          find build -name "libggml-metal.dylib" -exec cp {} "$dest/" \;
+          find build -name "libggml-metal.so" -exec cp {} "$dest/" \;
           find build -name "libggml-base.dylib" -exec cp {} "$dest/" \;
+          test -f "$dest/libggml-metal.so" || { echo "::error::libggml-metal.so not found in build output"; exit 1; }
+          test -f "$dest/libggml-base.dylib" || { echo "::error::libggml-base.dylib not found in build output"; exit 1; }
           zipName="ggml-metal-macos-universal-${{ steps.vars.outputs.short-sha }}.zip"
           (cd "$dest" && zip "../$zipName" ./*)
           echo "zip_path=$zipName" >> "$GITHUB_OUTPUT"
