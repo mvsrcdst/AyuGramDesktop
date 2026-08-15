@@ -39,6 +39,8 @@ jobs:
 
       - name: Prepare libraries
         run: Telegram\build\prepare\win.bat
+        env:
+          NUMBER_OF_PROCESSORS: 2
 
       - name: Configure
         run: >
