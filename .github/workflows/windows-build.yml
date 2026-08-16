@@ -24,9 +24,10 @@ jobs:
         with:
           python-version: "3.10"
 
-      - uses: ilammy/msvc-dev-cmd@v1
+      - uses: Eden-CI/msvc-dev-cmd@master
         with:
           arch: x64
+          toolset: "14.44"
 
       - uses: actions/cache@v6
         with:
@@ -36,40 +37,6 @@ jobs:
           key: win64-libs-v1-${{ hashFiles('Telegram/build/prepare/win.bat', 'Telegram/build/prepare/prepare.py', 'Telegram/build/qt_version.py') }}
           restore-keys: |
             win64-libs-v1-
-
-      - name: Link legacy ATL/MFC path
-        shell: pwsh
-        run: |
-          $dst = Join-Path $env:VCINSTALLDIR "atlmfc"
-          $legacyAtlHeader = Join-Path $dst "include\atlbase.h"
-          $legacyAtlLib = Join-Path $dst "lib\x64\atls.lib"
-          if ((Test-Path $legacyAtlHeader) -and (Test-Path $legacyAtlLib)) {
-            Write-Host "ATL/MFC already present at $dst, skipping."
-            exit 0
-          }
-
-          $toolsRoot = Join-Path $env:VCINSTALLDIR "Tools\MSVC"
-          $candidates = Get-ChildItem -Path $toolsRoot -Directory -ErrorAction SilentlyContinue | Sort-Object Name -Descending
-          Write-Host "Installed MSVC toolsets under $toolsRoot`: $($candidates.Name -join ', ')"
-
-          $src = $null
-          foreach ($c in $candidates) {
-            $atlmfc = Join-Path $c.FullName "ATLMFC"
-            $hasHeader = Test-Path (Join-Path $atlmfc "include\atlbase.h")
-            $hasLib = Test-Path (Join-Path $atlmfc "lib\x64\atls.lib")
-            Write-Host "  $($c.Name): header=$hasHeader lib=$hasLib"
-            if ($hasHeader -and $hasLib) {
-              $src = $atlmfc
-              break
-            }
-          }
-          if (-not $src) {
-            throw "No installed MSVC toolset has a complete ATLMFC (headers + atls.lib); cannot create compat link."
-          }
-
-          if (Test-Path $dst) { Remove-Item $dst -Force -Recurse }
-          New-Item -ItemType Junction -Path $dst -Target $src | Out-Null
-          Write-Host "Created junction $dst -> $src"
 
       - name: Prepare libraries
         run: Telegram\build\prepare\win.bat
