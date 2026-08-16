@@ -40,9 +40,9 @@ jobs:
       - name: Install ATL/MFC (VC.ATLMFC)
         shell: pwsh
         run: |
-          $atlHeader = Get-ChildItem -Path "${env:VCToolsInstallDir}ATLMFC\include\atlbase.h" -ErrorAction SilentlyContinue
-          if ($atlHeader) {
-            Write-Host "ATL/MFC already present at $($atlHeader.FullName), skipping install."
+          $legacyAtlHeader = Join-Path $env:VCINSTALLDIR "atlmfc\include\atlbase.h"
+          if (Test-Path $legacyAtlHeader) {
+            Write-Host "ATL/MFC already present at $legacyAtlHeader, skipping install."
             exit 0
           }
           $vsPath = (& "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath).Trim()
