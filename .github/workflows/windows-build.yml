@@ -37,18 +37,21 @@ jobs:
           restore-keys: |
             win64-libs-v1-
 
-      - name: Install ATL/MFC (VC.ATLMFC)
+      - name: Link legacy ATL/MFC path
         shell: pwsh
         run: |
           $legacyAtlHeader = Join-Path $env:VCINSTALLDIR "atlmfc\include\atlbase.h"
           if (Test-Path $legacyAtlHeader) {
-            Write-Host "ATL/MFC already present at $legacyAtlHeader, skipping install."
+            Write-Host "ATL/MFC already present at $legacyAtlHeader, skipping."
             exit 0
           }
-          $vsPath = (& "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath).Trim()
-          $installer = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe"
-          $proc = Start-Process -FilePath $installer -ArgumentList "modify --installPath `"$vsPath`" --add Microsoft.VisualStudio.Component.VC.ATLMFC --quiet --norestart --wait" -Wait -PassThru
-          if ($proc.ExitCode -ne 0) { throw "vs_installer failed with exit code $($proc.ExitCode)" }
+          $src = Join-Path $env:VCToolsInstallDir "ATLMFC"
+          if (-not (Test-Path $src)) {
+            throw "ATLMFC not found under VCToolsInstallDir ($src); cannot create compat link."
+          }
+          $dst = Join-Path $env:VCINSTALLDIR "atlmfc"
+          New-Item -ItemType Junction -Path $dst -Target $src | Out-Null
+          Write-Host "Created junction $dst -> $src"
 
       - name: Prepare libraries
         run: Telegram\build\prepare\win.bat
