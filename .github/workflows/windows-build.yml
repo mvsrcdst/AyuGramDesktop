@@ -39,7 +39,7 @@ jobs:
             win64-libs-v1-
 
       - name: Prepare libraries
-        run: Telegram\build\prepare\win.bat skip-release silent
+        run: Telegram\build\prepare\win.bat silent
 
       - name: Configure
         run: >
