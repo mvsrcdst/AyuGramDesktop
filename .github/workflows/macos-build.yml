@@ -44,7 +44,7 @@ jobs:
             macos-libs-v1-
 
       - name: Prepare libraries
-        run: Telegram/build/prepare/mac.sh skip-release silent
+        run: Telegram/build/prepare/mac.sh silent
 
       - name: Configure
         run: >
