@@ -24,9 +24,13 @@ constexpr auto kLibraryVersion = 1;
 #endif
 
 bool ProbeLibraryPresent(const char *name, const int version) {
-	QLibrary lib = (version == -1)
-		? QLibrary(QString::fromUtf8(name))
-		: QLibrary(QString::fromUtf8(name), version);
+	QLibrary lib;
+
+	if (version == -1) {
+		lib.setFileName(QString::fromUtf8(name));
+	} else {
+		lib.setFileNameAndVersion(QString::fromUtf8(name), version);
+	}
 	const auto loaded = lib.load();
 	if (loaded) {
 		lib.unload();
