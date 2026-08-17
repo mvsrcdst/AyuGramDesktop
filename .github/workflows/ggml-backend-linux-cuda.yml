@@ -77,7 +77,9 @@ jobs:
           dest=package
           mkdir -p "$dest"
           find build -name "libggml-cuda.so" -exec cp {} "$dest/" \;
-          find build -name "libggml-base.so" -exec cp {} "$dest/" \;
+          find build -name "libggml-base.so.0" -exec cp {} "$dest/" \;
+          test -f "$dest/libggml-cuda.so" || { echo "::error::libggml-cuda.so not found in build output"; exit 1; }
+          test -f "$dest/libggml-base.so.0" || { echo "::error::libggml-base.so.0 not found in build output"; exit 1; }
           cp -P "$CUDA_PATH"/lib64/libcublas.so.* "$dest/"
           cp -P "$CUDA_PATH"/lib64/libcublasLt.so.* "$dest/"
           zipName="ggml-cuda-linux-x64-${{ steps.vars.outputs.short-sha }}.zip"

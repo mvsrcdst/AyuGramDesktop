@@ -87,7 +87,9 @@ jobs:
           dest=package
           mkdir -p "$dest"
           find build -name "libggml-vulkan.so" -exec cp {} "$dest/" \;
-          find build -name "libggml-base.so" -exec cp {} "$dest/" \;
+          find build -name "libggml-base.so.0" -exec cp {} "$dest/" \;
+          test -f "$dest/libggml-vulkan.so" || { echo "::error::libggml-vulkan.so not found in build output"; exit 1; }
+          test -f "$dest/libggml-base.so.0" || { echo "::error::libggml-base.so.0 not found in build output"; exit 1; }
           zipName="ggml-vulkan-linux-x64-${{ steps.vars.outputs.short-sha }}.zip"
           (cd "$dest" && zip "../$zipName" ./*)
           echo "zip_path=$zipName" >> "$GITHUB_OUTPUT"

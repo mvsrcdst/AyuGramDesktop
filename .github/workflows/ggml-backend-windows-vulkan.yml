@@ -50,6 +50,7 @@ jobs:
           -DWHISPER_BUILD_TESTS=OFF
           -DWHISPER_BUILD_EXAMPLES=OFF
           -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
           -DGGML_VULKAN=ON
 
       - name: Build
