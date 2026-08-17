@@ -804,6 +804,8 @@ void BuildSTT(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 			: tr::ayu_SttHardwareAccelerationUnavailable(tr::now),
 	});
 
+	builder.addDividerText(tr::ayu_SttHardwareAccelerationDescription());
+
 	const auto whisperModelOptions = std::vector<QString>{
 		u"Tiny (~75 MB)"_q,
 		u"Base (~142 MB)"_q,
