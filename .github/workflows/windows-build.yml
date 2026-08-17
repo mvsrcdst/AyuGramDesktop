@@ -29,6 +29,40 @@ jobs:
           arch: x64
           toolset: "14.44"
 
+      - name: Link ATL/MFC into the pinned toolset
+        shell: pwsh
+        run: |
+          $dst = Join-Path $env:VCToolsInstallDir "ATLMFC"
+          $header = Join-Path $dst "include\atlbase.h"
+          $lib = Join-Path $dst "lib\x64\atls.lib"
+          if ((Test-Path $header) -and (Test-Path $lib)) {
+            Write-Host "ATL/MFC already present at $dst, skipping."
+            exit 0
+          }
+
+          $toolsRoot = Join-Path $env:VCINSTALLDIR "Tools\MSVC"
+          $candidates = Get-ChildItem -Path $toolsRoot -Directory -ErrorAction SilentlyContinue | Sort-Object Name -Descending
+          Write-Host "Installed MSVC toolsets under $toolsRoot`: $($candidates.Name -join ', ')"
+
+          $src = $null
+          foreach ($c in $candidates) {
+            $atlmfc = Join-Path $c.FullName "ATLMFC"
+            $hasHeader = Test-Path (Join-Path $atlmfc "include\atlbase.h")
+            $hasLib = Test-Path (Join-Path $atlmfc "lib\x64\atls.lib")
+            Write-Host "  $($c.Name): header=$hasHeader lib=$hasLib"
+            if ($hasHeader -and $hasLib) {
+              $src = $atlmfc
+              break
+            }
+          }
+          if (-not $src) {
+            throw "No installed MSVC toolset has a complete ATLMFC (headers + atls.lib); cannot create compat link."
+          }
+
+          if (Test-Path $dst) { Remove-Item $dst -Force -Recurse }
+          New-Item -ItemType Junction -Path $dst -Target $src | Out-Null
+          Write-Host "Created junction $dst -> $src"
+
       - uses: actions/cache@v6
         with:
           path: |
