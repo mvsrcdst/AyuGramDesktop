@@ -24,6 +24,10 @@ jobs:
         with:
           python-version: "3.10"
 
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "3.28.3"
+
       - uses: Eden-CI/msvc-dev-cmd@master
         with:
           arch: x64
