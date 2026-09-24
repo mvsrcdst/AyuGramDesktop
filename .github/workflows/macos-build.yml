@@ -14,7 +14,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v5
         with:
@@ -39,31 +39,44 @@ jobs:
 
           sudo sed -i '' '/CMAKE_${lang}_FLAGS_DEBUG_INIT/s/ -g//' /opt/homebrew/share/cmake/Modules/Compiler/GNU.cmake
 
-      - uses: actions/cache@v6
+      - name: Restore libraries cache
+        id: cache-libs
+        uses: actions/cache/restore@v6
         with:
           path: |
             Libraries
             ThirdParty
-          key: macos-libs-v1-${{ hashFiles('Telegram/build/prepare/mac.sh', 'Telegram/build/prepare/prepare.py', 'Telegram/build/qt_version.py') }}
+          key: macos-libs-release-v1-${{ hashFiles('Telegram/build/prepare/mac.sh', 'Telegram/build/prepare/prepare.py', 'Telegram/build/qt_version.py') }}
           restore-keys: |
-            macos-libs-v1-
+            macos-libs-release-v1-
 
       - name: Prepare libraries
-        run: Telegram/build/prepare/mac.sh skip-release silent
+        run: Telegram/build/prepare/mac.sh silent
+
+      - name: Save libraries cache
+        if: steps.cache-libs.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            Libraries
+            ThirdParty
+          key: ${{ steps.cache-libs.outputs.cache-primary-key }}
 
       - name: Configure
         run: >
           Telegram/configure.sh
           -D TDESKTOP_API_ID=${{ inputs.api_id }}
           -D TDESKTOP_API_HASH=${{ inputs.api_hash }}
-          -D CMAKE_CONFIGURATION_TYPES=Debug
+          -D CMAKE_CONFIGURATION_TYPES=Release
           -D CMAKE_COMPILE_WARNING_AS_ERROR=OFF
           -D CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO
           -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF
           -D DESKTOP_APP_DISABLE_CRASH_REPORTS=OFF
 
       - name: Build
-        run: cmake --build out --config Debug -- -jobs "$(sysctl -n hw.ncpu)"
+        run: |
+          defaults write com.apple.dt.Xcode IDEBuildingContinueBuildingAfterErrors -bool YES
+          cmake --build out --config Release -- -jobs "$(sysctl -n hw.ncpu)"
 
       - name: Package
         run: |
