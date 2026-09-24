@@ -44,8 +44,8 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: |
-            Libraries
-            ThirdParty
+            ../Libraries
+            ../ThirdParty
           key: macos-libs-release-v1-${{ hashFiles('Telegram/build/prepare/mac.sh', 'Telegram/build/prepare/prepare.py', 'Telegram/build/qt_version.py') }}
           restore-keys: |
             macos-libs-release-v1-
@@ -58,8 +58,8 @@ jobs:
         uses: actions/cache/save@v6
         with:
           path: |
-            Libraries
-            ThirdParty
+            ../Libraries
+            ../ThirdParty
           key: ${{ steps.cache-libs.outputs.cache-primary-key }}
 
       - name: Configure
