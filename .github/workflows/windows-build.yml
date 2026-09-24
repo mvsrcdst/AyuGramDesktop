@@ -45,12 +45,12 @@ jobs:
           path: |
             Libraries\win64
             ThirdParty
-          key: win64-libs-v1-${{ hashFiles('Telegram/build/prepare/win.bat', 'Telegram/build/prepare/prepare.py', 'Telegram/build/qt_version.py') }}
+          key: win64-libs-release-v1-${{ hashFiles('Telegram/build/prepare/win.bat', 'Telegram/build/prepare/prepare.py', 'Telegram/build/qt_version.py') }}
           restore-keys: |
-            win64-libs-v1-
+            win64-libs-release-v1-
 
       - name: Prepare libraries
-        run: Telegram\build\prepare\win.bat skip-release silent
+        run: Telegram\build\prepare\win.bat silent
 
       # CMAKE_POLICY_DEFAULT_CMP0194=NEW: silences a dev warning from the
       # whisper.cpp/ggml submodule that -Werror=dev otherwise turns fatal.
@@ -60,14 +60,14 @@ jobs:
           -D TDESKTOP_API_ID=${{ inputs.api_id }}
           -D TDESKTOP_API_HASH=${{ inputs.api_hash }}
           -D CMAKE_POLICY_DEFAULT_CMP0194=NEW
-          -D CMAKE_CONFIGURATION_TYPES=Debug
+          -D CMAKE_CONFIGURATION_TYPES=Release
           -D CMAKE_COMPILE_WARNING_AS_ERROR=OFF
           -D CMAKE_MSVC_DEBUG_INFORMATION_FORMAT=
           -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF
           -D DESKTOP_APP_DISABLE_CRASH_REPORTS=OFF
 
       - name: Build
-        run: cmake --build out --config Debug -- /m
+        run: cmake --build out --config Release -- /m
 
       - name: Package
         shell: pwsh

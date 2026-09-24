@@ -44,26 +44,26 @@ jobs:
           path: |
             Libraries
             ThirdParty
-          key: macos-libs-v1-${{ hashFiles('Telegram/build/prepare/mac.sh', 'Telegram/build/prepare/prepare.py', 'Telegram/build/qt_version.py') }}
+          key: macos-libs-release-v1-${{ hashFiles('Telegram/build/prepare/mac.sh', 'Telegram/build/prepare/prepare.py', 'Telegram/build/qt_version.py') }}
           restore-keys: |
-            macos-libs-v1-
+            macos-libs-release-v1-
 
       - name: Prepare libraries
-        run: Telegram/build/prepare/mac.sh skip-release silent
+        run: Telegram/build/prepare/mac.sh silent
 
       - name: Configure
         run: >
           Telegram/configure.sh
           -D TDESKTOP_API_ID=${{ inputs.api_id }}
           -D TDESKTOP_API_HASH=${{ inputs.api_hash }}
-          -D CMAKE_CONFIGURATION_TYPES=Debug
+          -D CMAKE_CONFIGURATION_TYPES=Release
           -D CMAKE_COMPILE_WARNING_AS_ERROR=OFF
           -D CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO
           -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF
           -D DESKTOP_APP_DISABLE_CRASH_REPORTS=OFF
 
       - name: Build
-        run: cmake --build out --config Debug -- -jobs "$(sysctl -n hw.ncpu)"
+        run: cmake --build out --config Release -- -jobs "$(sysctl -n hw.ncpu)"
 
       - name: Package
         run: |
