@@ -85,6 +85,12 @@ jobs:
           dest=package
           mkdir -p "$dest"
           ditto "$app" "$dest/AyuGram.app"
+          for bin in MacOS/AyuGram Frameworks/Updater Helpers/crashpad_handler; do
+            strip -S -x "$dest/AyuGram.app/Contents/$bin"
+          done
+          codesign --force --deep -s - "$dest/AyuGram.app"
+          codesign --verify --deep --strict "$dest/AyuGram.app"
+          
           ditto -c -k --sequesterRsrc --keepParent "$dest/AyuGram.app" AyuGram-macos.zip
 
       - uses: actions/upload-artifact@v7
