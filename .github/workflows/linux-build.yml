@@ -16,7 +16,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/telegramdesktop/tdesktop/centos_env:latest
+      image: ghcr.io/telegramdesktop/tdesktop/centos_env@sha256:e9f41c76442a3c5d6d66910aaa5713490ed16fc8c3182e34196e1c6b203df431
       options: --user root
     steps:
       - uses: actions/checkout@v5
