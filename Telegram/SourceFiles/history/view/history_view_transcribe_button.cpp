@@ -393,6 +393,14 @@ ClickHandlerPtr TranscribeButton::link() {
 		if (AyuSettings::getInstance().sttEnabled() && !summarize) {
 #if defined(HAVE_WHISPER)
 			if (AyuSettings::getInstance().sttEngine() == STTEngine::Whisper) {
+				if (!Ayu::STT::STTManager::cpuSupported()) {
+					const auto my = context.other.value<ClickHandlerContext>();
+					if (const auto controller = my.sessionWindow.get()) {
+						controller->showToast(
+							tr::ayu_SttCpuNotSupported(tr::now));
+					}
+					return;
+				}
 				const auto modelType = static_cast<int>(
 					AyuSettings::getInstance().whisperModelType());
 				if (!Ayu::STT::STTManager::modelExists(modelType)) {

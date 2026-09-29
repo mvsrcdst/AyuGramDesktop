@@ -21,6 +21,8 @@ public:
 	[[nodiscard]] static QString modelUrl(int modelType);
 	[[nodiscard]] static bool modelExists(int modelType);
 	[[nodiscard]] static QString modelsDirectory();
+	// False when the CPU can't run the bundled ggml build (Whisper only).
+	[[nodiscard]] static bool cpuSupported();
 
 private:
 	STTManager() = default;
