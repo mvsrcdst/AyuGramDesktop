@@ -44,5 +44,5 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          name: AyuGram-linux-x64
           path: AyuGram-linux-x64.tar.gz
+          archive: false

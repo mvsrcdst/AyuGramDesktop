@@ -165,5 +165,5 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          name: AyuGram-windows-x64
           path: AyuGram-windows-x64.zip
+          archive: false

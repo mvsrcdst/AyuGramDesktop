@@ -38,6 +38,10 @@ if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/whisper.cpp/CMakeLists.txt")
     # OpenMP runtime can't be linked statically (MSVC pulls vcomp140[d].dll,
     # GCC libgomp.so); ggml falls back to its own std::thread pool.
     set(GGML_OPENMP OFF CACHE BOOL "" FORCE)
+    # GGML_NATIVE probes the build machine's CPU (MSVC FindSIMD picks
+    # /arch:AVX512 on CI runners) and the binary dies with an illegal
+    # instruction on user CPUs/VMs without it. Pin a portable baseline.
+    set(GGML_NATIVE OFF CACHE BOOL "" FORCE)
     set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS ON CACHE BOOL "" FORCE)
     # whisper.cpp pins cmake_minimum_required(VERSION 3.5); CMake 4.x
     # removed <3.10 compatibility, so bump the override (4.3 needs >= 3.10).
